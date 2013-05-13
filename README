@@ -1,0 +1,35 @@
+The project consists of 11 files so far.
+It uses only Libevent as an external library.
+The Libevent library can be downloaded from https://github.com/downloads/libevent/libevent/libevent-2.0.21-stable.tar.gz
+
+The tutorial to compile libevent in Linux (Sample tutorial found on the Internet!!):
+Open console and type the following:
+
+wget http://monkey.org/~provos/libevent-1.4.14b-stable.tar.gz
+$ tar xzf libevent-1.4.14b-stable.tar.gz
+$ cd libevent-1.4.14b-stable
+$ ./configure --prefix=/opt/libevent
+# hopefully, you haven't encountered any errors so far
+$ make
+# make install
+
+You should have libevent installed in /opt/libevent. To make sure:
+
+ls -la /opt/libevent
+
+Tutorial to compile Libevent in Windows:
+Open console and type the following (For example VS2010 User Command Prompt):
+cd \where\you\put\it
+nmake -f makefile.nmake
+
+Hopefully you will get 3 .lib files: libevent.lib libevent_core.lib libevent_extras.lib. Link them all to the project.
+Remember to add additional include directories: ../libevent/include
+Unfortunately I don't have a makefile for the project so if you would provide one I would be grateful.
+Compile and hope it will work:)
+
+The program consist of classes: client, baseserver, mainserv, serverlogic
+The base class for all classes is mainserv (The base decorator class).
+The class implementing Libevent methods handling incoming connections is baseserver.
+As soon as baseserver class does its job, it handles the control to serverlogic class. It is happening by calling the functions of the same name in the baseserver's methods.
+Serverlogic implements the vector of clients to keep track of the connections with them as well as is responsible for musticasting messages to other connected clients. You can try opening a few simple clients and test it.
+That's it. Try and work on your part.
