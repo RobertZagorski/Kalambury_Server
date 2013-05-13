@@ -79,14 +79,14 @@ void serverlogic::on_read(struct bufferevent *bev, void *arg)
          i != vectorOfGamers->end(); ++i)
     {
         /**In case we don't send to the sender*/
-        //if (output != i->out_buffer)
-        //{
+        if (output != i->out_buffer)
+        {
             evbuffer_add((i->out_buffer), data, len);
         
             printf("%.*s\n", len, data);
             //printf("we got some data: %s\n", (*data));
             printf ("The size of data: %d\n", len);
-        //}
+        }
     }
     delete [] (data);
 }

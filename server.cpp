@@ -46,11 +46,14 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
     socketOutput = socket(AF_INET, SOCK_STREAM, 0);
     if (socketOutput < 0) {
         //B³¹d - implementacja biblioteki boost z b³êdami boost::exception
-        int error = WSAGetLastError();
-		std::cout << "listen failed " << error << std::endl; 
         #ifdef OS_Windows
+            int error = WSAGetLastError();
+		    std::cout << "listen failed " << error << std::endl; 
             WSACleanup();
+        #else
+            err(1, "listen failed");
         #endif
+
     }
 
 	listenAddress = new sockaddr_in();
@@ -63,11 +66,16 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
 	/*Set the socket to non-blocking*/
     if (evutil_make_socket_nonblocking(socketOutput) < 0) {
 		//B³¹d - implementacja biblioteki boost z b³êdami boost::exception
-        //err(1, "failed to set server socket to non-blocking");
+        #ifdef OS_Windows
+            /* Windows code */
+            std::cout << "failed to set server socket to non-blocking" << std::endl;
+        #else
+            err(1, "failed to set server socket to non-blocking");
+        #endif
     }
 	/*creating a base event for server needed by Libevent*/
     if ((base = event_base_new()) == NULL) {
-        //perror("Unable to create socket accept event base");
+        perror("Unable to create socket accept event base");
 		#ifdef OS_Windows
             /* Windows code */
 		    closesocket((socketOutput));
@@ -134,9 +142,14 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
 	{
         //warn("client output buffer allocation failed");
         closeAndFreeClient(connectedClient);
-        int error = WSAGetLastError();
-	std::cout << "listen failed " << error << std::endl; 
-        //return;
+        #ifdef OS_Windows
+            /* Windows code */
+            int error = WSAGetLastError();
+    	    std::cout << "failed to create new ev_buffer for the client " << error << std::endl;
+        #else
+            /* GNU/Linux code */
+            warn("client bufferevent creation failed\n");
+        #endif
     }
     
     ///*Accept incoming connection*/
@@ -145,8 +158,14 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
     {
         //warn("client event_base creation failed");
         closeAndFreeClient(connectedClient);
-        int error = WSAGetLastError();
-    	std::cout << "listen failed " << error << std::endl;
+        #ifdef OS_Windows
+            /* Windows code */
+            int error = WSAGetLastError();
+    	    std::cout << "failed to create base evconnlistenner for the client: " << error << std::endl;
+        #else
+            /* GNU/Linux code */
+            warn("failed to create base evconnlistenner for the client:\n");
+        #endif
     }
     
     /*Complete socket binding*/
@@ -155,9 +174,14 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
     if ((connectedClient->in_buffer) == NULL) 
 	{
         closeAndFreeClient(connectedClient);
-        int error = WSAGetLastError();
-    	std::cout << "listen failed " << error << std::endl;
-       //return;
+        #ifdef OS_Windows
+            /* Windows code */
+            int error = WSAGetLastError();
+    	    std::cout << "failed to associate underlying socket with the client: " << error << std::endl;
+        #else
+            /* GNU/Linux code */
+            warn("failed to associate underlying socket with the client\n");
+        #endif
     }
     connectedClient->c_socket = evconnlistener_get_fd(listener);
 	
