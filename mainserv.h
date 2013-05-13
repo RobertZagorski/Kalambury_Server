@@ -14,8 +14,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-#include <mutex>
+#include <err.h>
 #elif defined(_WIN32) || defined(WIN32)
 #include <WinSock2.h>
 #include <ws2tcpip.h>
@@ -25,16 +24,23 @@
 /*client class*/
 #include "client.h"
 
+/**The main base class for the project. It is responsible for delivering an interface all derived classes must implement.*/
 class mainserv 
 {
 public:
+    /**The default constructor. Does nothing*/
     mainserv();
+    /**The virtual deconstructor.*/
     virtual ~mainserv();
+    /**Function responsible for handling newly connected connections*/
     virtual void on_accept(struct evconnlistener *listener,
                   evutil_socket_t fd, struct sockaddr *address,
-                  int socklen, void *ctx) = 0 ;
+                  int socklen, void *ctx) = 0;
+    /**Method responsible for proper handling of incoming messages from previously accepted clients*/
     virtual void on_read(struct bufferevent *bev, void *arg) = 0;
+    /**Closing client's socket*/
 	virtual void closeClient(client *clnt) = 0;
-	virtual void closeAndFreeClient(client *clnt) = 0;
+	/**Closing client's socket and releasing all buffers connected with it*/
+    virtual void closeAndFreeClient(client *clnt) = 0;
 };
 #endif //MAINSERV_H

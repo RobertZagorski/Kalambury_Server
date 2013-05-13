@@ -7,6 +7,8 @@
 
 
 enum MESSAGE {LOGGING,DRAWING,CHAT,BACK};
+
+/**The class implementing the logic of a server. It maintains the list of connected clients, multicasting the messages*/
 class serverlogic : public mainserv
 {
 public:
