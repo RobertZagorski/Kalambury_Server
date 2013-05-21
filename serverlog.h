@@ -7,6 +7,8 @@
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/thread/mutex.hpp>
 
+/**Class responsible for logging information connected with server. Based on
+  * singleton pattern*/
 class serverlog
 {
 public:

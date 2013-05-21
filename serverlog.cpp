@@ -4,6 +4,7 @@ serverlog* serverlog::serverlog_ = 0L;
 
 serverlog::serverlog(void)
 {
+    //Get current time using boost::posix_time library
     currenttime = boost::posix_time::second_clock::local_time();
     output_facet = new boost::local_time::local_time_facet();
     logfile.imbue(std::locale(std::locale::classic(), output_facet));
