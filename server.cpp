@@ -28,6 +28,8 @@ baseserver::baseserver() : mainserv(){};
 baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) : 
                        mainserv(), serverlogic_(servlogic), PORT(&port_)
 {
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Starting to initiate server", *(&con));
     const char reuseaddrOn = 1;
     #ifdef OS_Windows
         //Start up Winsock…
@@ -48,7 +50,8 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
         //B³¹d - implementacja biblioteki boost z b³êdami boost::exception
         #ifdef OS_Windows
             int error = WSAGetLastError();
-		    std::cout << "listen failed " << error << std::endl; 
+            con = serverlog::NO_CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Socket couldn't be created "+error, *(&con));
             WSACleanup();
         #else
             err(1, "listen failed");
@@ -61,21 +64,29 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
 	listenAddress->sin_addr.s_addr = INADDR_ANY;
     listenAddress->sin_port = htons(*PORT);
     memset(&(listenAddress->sin_zero), 0, sizeof(listenAddress->sin_zero));
-    printf("server port = %d\n", ntohs(listenAddress->sin_port));
+    con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Parameters of the socket: ", *(&con));
+    char *buffer = new char[20]();
+    sprintf(buffer, "Port: %d", ntohs(listenAddress->sin_port));
+    serverlog::getlog().loginfo(buffer,*(&con));
+    delete [] buffer;
 
 	/*Set the socket to non-blocking*/
     if (evutil_make_socket_nonblocking(socketOutput) < 0) {
 		//B³¹d - implementacja biblioteki boost z b³êdami boost::exception
         #ifdef OS_Windows
             /* Windows code */
-            std::cout << "failed to set server socket to non-blocking" << std::endl;
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Failed to set socket in non-blocking mode", *(&con));
         #else
-            err(1, "failed to set server socket to non-blocking");
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Failed to set socket in non-blocking mode", *(&con));
         #endif
     }
 	/*creating a base event for server needed by Libevent*/
     if ((base = event_base_new()) == NULL) {
-        perror("Unable to create socket accept event base");
+        con = serverlog::CONSOLE_OUTPUT;
+        serverlog::getlog().loginfo("Unable to create socket accept event base", *(&con));
 		#ifdef OS_Windows
             /* Windows code */
 		    closesocket((socketOutput));
@@ -85,7 +96,8 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
         #endif
         baseserver::~baseserver();
     }
-    printf("Server running.\n");
+    con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Server Running", *(&con));
     /* A listening socket is created, creating a accept event to
      * be notified when a new client is connected. 
      * Also this function binds the socket with client */
@@ -93,7 +105,8 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
             LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE, -1,
             (struct sockaddr*)listenAddress, sizeof(*listenAddress));
         if (!listener) {
-                perror("Couldn't create listener");
+            con = serverlog::NO_CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Couldn't create listener", *(&con));
         }
     /* Start the event loop. */
     event_base_dispatch(base);
@@ -108,23 +121,25 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
 	    close(socketOutput);
     #endif
     delete(listenAddress);
-    printf("Server shutdown.\n");
+    con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Server shutdown", *(&con));
 }
 
 
 baseserver::~baseserver()
 {
     if (event_base_loopexit(base, NULL)) {
-        perror("Error shutting down server");
+        serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+        serverlog::getlog().loginfo("Error shutting down server", *(&con));
     }
 }
 
-void baseserver::closeClient(client *clnt) 
+void baseserver::closeClient(clientPtr clnt) 
 {
     serverlogic_->closeClient(clnt);
 }
 
-void baseserver::closeAndFreeClient(client *clnt) 
+void baseserver::closeAndFreeClient(clientPtr clnt) 
 {
     serverlogic_->closeAndFreeClient(clnt);
 }
@@ -133,27 +148,30 @@ void baseserver::closeAndFreeClient(client *clnt)
 void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx)
 {
 	baseserver *callback_ptr = (baseserver *) ctx;
-    client *connectedClient;
-
-	/*Create new client*/
-	connectedClient = new client();
-
-	if ((connectedClient->out_buffer = evbuffer_new()) == NULL) 
+    /*Create new client*/
+    clientPtr connectedClient = std::make_shared<client>();
+    connectedClient->out_buffer = evbuffer_new();
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("New incoming connection", *(&con));
+	if (connectedClient->out_buffer == NULL) 
 	{
         //warn("client output buffer allocation failed");
         closeAndFreeClient(connectedClient);
         #ifdef OS_Windows
             /* Windows code */
             int error = WSAGetLastError();
-    	    std::cout << "failed to create new ev_buffer for the client " << error << std::endl;
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("failed to create new ev_buffer for the client. Socket Error: "+ error, *(&con));
         #else
             /* GNU/Linux code */
-            warn("client bufferevent creation failed\n");
+            serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("client bufferevent creation failed", *(&con));
         #endif
     }
     
     ///*Accept incoming connection*/
-    connectedClient->evbase = event_base_new();
+    //connectedClient->evbase = event_base_new();
+    connectedClient->evbase = evconnlistener_get_base(listener);
     if ((connectedClient->evbase = evconnlistener_get_base(listener)) == NULL)
     {
         //warn("client event_base creation failed");
@@ -161,26 +179,32 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
         #ifdef OS_Windows
             /* Windows code */
             int error = WSAGetLastError();
-    	    std::cout << "failed to create base evconnlistenner for the client: " << error << std::endl;
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Failed to create base evconnlistenner for the client. Socket error: " + error, *(&con));
         #else
             /* GNU/Linux code */
-            warn("failed to create base evconnlistenner for the client:\n");
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("failed to create base evconnlistenner for the client", *(&con));
         #endif
     }
     
     /*Complete socket binding*/
 	connectedClient->in_buffer = bufferevent_socket_new(
                                  connectedClient->evbase, fd, BEV_OPT_CLOSE_ON_FREE);
+    con = serverlog::NO_CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Associating socket with client", *(&con));
     if ((connectedClient->in_buffer) == NULL) 
 	{
         closeAndFreeClient(connectedClient);
         #ifdef OS_Windows
             /* Windows code */
             int error = WSAGetLastError();
-    	    std::cout << "failed to associate underlying socket with the client: " << error << std::endl;
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Failed to associate underlying socket with the client: " + error, *(&con));
         #else
             /* GNU/Linux code */
-            warn("failed to associate underlying socket with the client\n");
+            con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo("Failed to associate underlying socket with the client: ", *(&con));
         #endif
     }
     connectedClient->c_socket = evconnlistener_get_fd(listener);
@@ -188,16 +212,13 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
     /*Create the buffered event*/
 	bufferevent_setcb(connectedClient->in_buffer, (baseserver_on_read), 
                      (baseserver_on_write), (baseserver_on_error), this);
-    
+    con = serverlog::NO_CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Setting a buffered event for client", *(&con));
     /* enable it before our callbacks will be called. */
     bufferevent_enable(connectedClient->in_buffer, EV_READ|EV_WRITE);
     connectedClient->out_buffer = bufferevent_get_output(connectedClient->in_buffer);
-    serverlogic_->on_accept(listener,fd, address, socklen, connectedClient);
-	//////
-	////// Reszta kodu dotycz¹ca rejestracji klientów itd.
-	//////
-	//////
-        
+    serverlogic_->on_accept(listener,fd, address, socklen, static_cast<void *>(connectedClient.get()));
+    connectedClient.reset();        
 }
 
 void baseserver::on_read(struct bufferevent *bev, void *arg)
@@ -207,7 +228,7 @@ void baseserver::on_read(struct bufferevent *bev, void *arg)
 	///
     serverlogic_->on_read(bev,arg);
     /* Copy all the data from the input buffer to the output buffer. */
-    //evbuffer_add_buffer(output, input);   
+    //evbuffer_add_buffer(output, input);
 }
 
 void baseserver::on_write(struct bufferevent *bev, void *arg) 
@@ -216,8 +237,10 @@ void baseserver::on_write(struct bufferevent *bev, void *arg)
 
 void baseserver::on_error(struct bufferevent* bev, short what, void* arg)
 {
-    std::cout << "Error on the underlying socket" << std::endl;
+    //serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
+    //serverlog::getlog().loginfo("Error on the underlying socket", *(&con));
     evutil_socket_t socketptr = bufferevent_getfd(bev);
-    bufferevent_free(bev);
-    ///Jakoœ trzeba zamkn¹æ klienta i usun¹æ go z vectora w serverlogic.
+    try {
+    serverlogic_->on_error(bev,what, (void *)socketptr);
+    } catch (std::exception Exc) {std::cout << Exc.what() << std::endl;}
 }

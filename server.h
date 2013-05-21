@@ -2,10 +2,13 @@
 #define SERVER_H
 #include <iostream>
 #include <string>
+#include <stdio.h>
 
 ///*The logic of a server*/
 //#include "serverlogic.h"
 #include "mainserv.h"
+#include "serverlog.h"
+#include <boost\make_shared.hpp>
 
 /* Main server class. Responsible for implementation of functions needed by Libevent 
  * to properly handle connections. Implements only basic functions of a server, such as
@@ -52,12 +55,12 @@ public:
 	 * Function closing a client when an error occurs. 
 	 * Platform independent
 	 */
-	virtual void closeClient(client *clnt);
+	virtual void closeClient(clientPtr clnt);
 	/**
 	 * Function closing and releasing everything connected with 
 	 * a client when an error occurs.
 	 */
-	virtual void closeAndFreeClient(client *clnt);
+	virtual void closeAndFreeClient(clientPtr clnt);
 private:
     mainserv *serverlogic_;
 	const unsigned short* PORT;/**Port number to listen to*/

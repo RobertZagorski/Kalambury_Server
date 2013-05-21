@@ -28,6 +28,8 @@
 class mainserv 
 {
 public:
+    /**The smart pointer to a client object. Used shared_ptr in this case*/
+    typedef std::shared_ptr<client> clientPtr;
     /**The default constructor. Does nothing*/
     mainserv();
     /**The virtual deconstructor.*/
@@ -38,9 +40,11 @@ public:
                   int socklen, void *ctx) = 0;
     /**Method responsible for proper handling of incoming messages from previously accepted clients*/
     virtual void on_read(struct bufferevent *bev, void *arg) = 0;
+    /**This function is called when an unexptected problem is caused with a socket*/
+    virtual void on_error(struct bufferevent* bev, short what, void* arg) = 0;
     /**Closing client's socket*/
-	virtual void closeClient(client *clnt) = 0;
+	virtual void closeClient(clientPtr clnt) = 0;
 	/**Closing client's socket and releasing all buffers connected with it*/
-    virtual void closeAndFreeClient(client *clnt) = 0;
+    virtual void closeAndFreeClient(clientPtr clnt) = 0;
 };
 #endif //MAINSERV_H

@@ -2,6 +2,7 @@
 #include "mainserv.h"
 #include "server.h"
 #include "serverlogic.h"
+#include "serverlog.h"
 
 int main(int argc, char *argv[]){
 	const unsigned short port = 12034;
@@ -11,4 +12,3 @@ int main(int argc, char *argv[]){
     baseserverPtr->baseserver::~baseserver();
     return 0;
 };
-
