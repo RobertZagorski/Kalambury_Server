@@ -9,6 +9,6 @@ int main(int argc, char *argv[]){
     serverlogic *servlogic_ = new serverlogic();
     baseserver* baseserverPtr = new baseserver(servlogic_,port);
 	std::cin.get();
-    baseserverPtr->baseserver::~baseserver();
+    baseserverPtr->~baseserver();
     return 0;
 };
