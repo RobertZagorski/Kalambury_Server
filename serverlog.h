@@ -15,12 +15,12 @@ public:
     static enum CONSOLE {NO_CONSOLE_OUTPUT,CONSOLE_OUTPUT};
     ~serverlog(void);
     static serverlog& getlog();
-    void loginfo(char *info, CONSOLE &todo);
-    void logtofile(char * info);
+    void loginfo(const char *info, const CONSOLE &todo);
+    void logtofile(const char * info);
     static boost::mutex& GetMutex();
 private:
     static serverlog* serverlog_;
-    serverlog(void);
+    serverlog();
     serverlog(const serverlog&);
     std::ofstream logfile;
     /**Date connected fields*/

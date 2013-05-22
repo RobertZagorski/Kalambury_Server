@@ -2,7 +2,7 @@
 
 serverlog* serverlog::serverlog_ = 0L;
 
-serverlog::serverlog(void)
+serverlog::serverlog()
 {
     //Get current time using boost::posix_time library
     currenttime = boost::posix_time::second_clock::local_time();
@@ -12,7 +12,7 @@ serverlog::serverlog(void)
 }
 
 
-serverlog::~serverlog(void)
+serverlog::~serverlog()
 {
     logfile.close();
     delete output_facet;
@@ -29,7 +29,7 @@ serverlog& serverlog::getlog()
     return *serverlog_;
 }
 
-void serverlog::loginfo(char *info,serverlog::CONSOLE &todo)
+void serverlog::loginfo(const char *info,const serverlog::CONSOLE &todo)
 {
     if (todo == serverlog::CONSOLE_OUTPUT)
     {
@@ -39,7 +39,7 @@ void serverlog::loginfo(char *info,serverlog::CONSOLE &todo)
     logtofile(info);
 }
 
-void serverlog::logtofile(char *info)
+void serverlog::logtofile(const char *info)
 {
     logfile.open ("log.txt", std::ios::out | std::ios::app);
     if (logfile.is_open())
