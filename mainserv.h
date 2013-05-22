@@ -1,6 +1,7 @@
 #ifndef MAINSERV_H
 #define MAINSERV_H
 #include <iostream>
+#include <cstring>
 /* Libevent*/
 #include <event2/event.h>
 #include <event2/bufferevent.h>
@@ -14,6 +15,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 #include <err.h>
 #elif defined(_WIN32) || defined(WIN32)
 #include <WinSock2.h>
