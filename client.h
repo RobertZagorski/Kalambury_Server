@@ -2,10 +2,13 @@
 #define CLIENT_H
 #include <memory>
 
+/**The class of a client. It mainly keeps information about a client
+  * like a socket descriptor, name of a client, points he has  
+  */
 class client
 {
 public:	
-
+    /**The status of a player. Used to verify what rights a player has during a game*/
     enum STATUS {DRAW,GUESS,OBSERVE};
 	/**The client's socket. */
     int c_socket;
@@ -28,8 +31,20 @@ public:
 	STATUS* getStatus();
     /**The method used to set the status of a client*/
     void setStatus(STATUS*);
+    /**The method used to retrieve the name of a client*/
+	char* getName();
+    /**The method used to set the name of a client*/
+    void setName(char *);
+    /**The method used to retrieve the number of points of a client*/
+	int& getPoints();
+    /**The method used to set the number of points of a client*/
+    void addPoints();
 private:
 	/**The status of a client. Indicates what rights the client has in the game*/
-	STATUS* clientStatus;
+	STATUS *clientStatus_;
+    /**The name of a client*/
+    char *name_;
+    /**Number of points of a client*/
+    int points_;
 };
 #endif //CLIENT_H

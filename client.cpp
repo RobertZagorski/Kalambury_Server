@@ -1,15 +1,20 @@
 #include "client.h"
 
 
-client::client() {}
+client::client() 
+{
+    this->points_ = 0;
+    this->setStatus(new client::STATUS(client::GUESS));
+}
 
 client::client(const client &clnt)
 {
-    this->clientStatus = clnt.clientStatus;
+    this->clientStatus_ = new STATUS(*clnt.clientStatus_);
     this->c_socket = clnt.c_socket;
     this->evbase = clnt.evbase;
     this->in_buffer = clnt.in_buffer;
     this->out_buffer = clnt.out_buffer;
+    //this->name_ = new char (*clnt.name_);
 }
 
 client::~client() {}
@@ -17,10 +22,30 @@ client::~client() {}
 
 client::STATUS* client::getStatus()
 {
-	return clientStatus;
+	return clientStatus_;
 }
 
 void client::setStatus(STATUS* status_)
 {
-	this->clientStatus = status_;
+	this->clientStatus_ = status_;
+}
+
+char* client::getName()
+{
+	return name_;
+}
+
+void client::setName(char* name)
+{
+	this->name_ = name;
+}
+
+int& client::getPoints()
+{
+	return points_;
+}
+
+void client::addPoints()
+{
+	this->points_+=1;
 }

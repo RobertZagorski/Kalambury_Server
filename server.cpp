@@ -155,7 +155,6 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
     serverlog::getlog().loginfo("New incoming connection", *(&con));
 	if (connectedClient->out_buffer == NULL) 
 	{
-        //warn("client output buffer allocation failed");
         closeAndFreeClient(connectedClient);
         #ifdef OS_Windows
             /* Windows code */

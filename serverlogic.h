@@ -2,9 +2,13 @@
 #define SERVERLOGIC_H
 
 #include <list>
+#include <vector>
 #include <stdio.h>
-#include <boost\bind.hpp>
-#include <boost\ref.hpp>
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+#include <string>
+#include <boost\tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 #include "mainserv.h"
 #include "serverlog.h"
 
@@ -16,6 +20,7 @@ class serverlogic : public mainserv
 
 public:
     enum MESSAGE {LOGGING,DRAWING,CHAT,BACK};
+    enum GAMESTATUS {ON,OFF};
 	serverlogic();
 	~serverlogic();
 	
@@ -49,16 +54,73 @@ public:
      */
     bool addGamer(clientPtr clnt);
 
-    /** Checks the type of a message looking at its beginning and returns 
+    /** 
+     * Checks the type of a message looking at its beginning and returns 
      * one of the four known status types described in enum MESSAGE
      */
     MESSAGE checkForMessageType(char *);
-    ///**
-    // * Method responsible for multicasting a message to every client except the client who has sent it
-    // */
-    //void multicast(clientPtr clnt,evbuffer &output,char &data,size_t &len);
+    
+    
+    
+    /**
+     * Setting a player name when a client has sent an appropriate message
+     */
+    void loginmessage(struct bufferevent *);
+    
+    /**
+     * Called when others need to wait for players
+     */
+    void waitingmessage(struct bufferevent *);
+    
+    /**
+     * Called when a client joins game
+     */
+    void joinedmessage(struct bufferevent *);
+
+     /**
+     * Called when a client sends draw message
+     */
+    void drawmessage(struct bufferevent *);
+
+    /**
+     * Called when a client sends chat message
+     */
+    void chatmessage(struct bufferevent *);
+
+    /**
+     * called when a drawing player has left a game and new player 
+     */
+    void gamemessage(struct bufferevent *);
+
+    /**
+     * Checking a password when a client has sent an appropriate message
+     */
+    void itemmessage(struct bufferevent *);
+
+    /**
+     * Called when a client has won a game and now will be drawing. The message 
+      * with a name of player is sent
+     */
+    void guessedmessage(struct bufferevent *);
+
+    /**
+     * Sending a message with a score table
+     */
+    void scoremessage(struct bufferevent *);
 private:
-	std::list<clientPtr> *vectorOfGamers;
+    /**The patterns of messages got from clients*/
+    std::string patterns [9];
+    /**Function Pointers to functions invoked when message comes*/
+    void (serverlogic::*FunctionPointers[9])(struct bufferevent *);
+    /**A vector holding parts of incoming message*/
+    std::vector<std::string> tokenvector;
+    /**A vector of clients holding references to them*/
+	std::list<clientPtr> *listOfGamers;
+    /**A maximum number of gamers that simultaneously can play*/
     const unsigned int *GAMER_MAX_COUNT;
+    /**A string holding actual password clients need to guess*/
+    std::string pass;
+    /**A enum indicating whether the game has started or not*/
+    GAMESTATUS gamestat;
 };
 #endif //SERVERLOGIC_H
