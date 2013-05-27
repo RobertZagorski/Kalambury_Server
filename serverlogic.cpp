@@ -77,6 +77,13 @@ bool serverlogic::addGamer(clientPtr clnt)
         //    return false;
         //}
     }
+    else if (listOfGamers->size() == (*GAMER_MAX_COUNT))
+    {
+        std::string *data = new std::string("WAIT");
+        evbuffer_add((clnt->out_buffer), data->c_str(), data->size());
+        closeAndFreeClient(clnt);
+        delete data;
+    }
     else return false;
 }
 
@@ -90,7 +97,7 @@ void serverlogic::on_accept(struct evconnlistener *listener,evutil_socket_t fd,
                             struct sockaddr *address, int socklen, void *ctx)
 {
     //clientPtr clnt = std::make_shared<client>(*(static_cast<client *>(ctx)));
-    clientPtr clnt = std::make_shared<client>(*static_cast<client*>(ctx));
+    clientPtr clnt = boost::make_shared<client>(*static_cast<client*>(ctx));
     serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
     serverlog::getlog().loginfo("Request from a client to be registered", *(&con));
     if (addGamer(clnt))
@@ -193,19 +200,19 @@ void serverlogic::on_error(struct bufferevent* bev, short what, void* arg)
             std::string* data = new std::string("Disconnected: ");
             data->append((*i)->getName());
             evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
+            serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo(data->c_str(), *(&con));
             if (client::DRAW == *((*i)->getStatus()))
             {
                 srand (time(NULL));
                 int element = rand()%listOfGamers->size();
-                std::list<clientPtr>::iterator ptr;
-                for(int j = 0 , ptr = listOfGamers->begin() ; 
-                    j < element && ptr != listOfGamers->end() ; 
-                    j++ , ptr++ );
-                (*ptr)->setStatus(new client::STATUS(client::DRAW));
+                std::list<clientPtr>::iterator pointer = listOfGamers->begin();
+                for(int j = 0 ;j < element && pointer != listOfGamers->end() ; j++ , pointer++ ){};
+                (*pointer)->setStatus(new client::STATUS(client::DRAW));
             }
             delete data;
             listOfGamers->erase(i);
-            serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
+            con = serverlog::NO_CONSOLE_OUTPUT;
             serverlog::getlog().loginfo("Erased client's data from database", *(&con));
             break;
         }
@@ -215,7 +222,7 @@ void serverlogic::on_error(struct bufferevent* bev, short what, void* arg)
     {
         waitingmessage(bev);
         gamestat = serverlogic::OFF;
-        //Delete history
+        history.clear();
     }
 }
 
@@ -232,20 +239,20 @@ void serverlogic::loginmessage(struct bufferevent *bev)
             break;
         }
     }
-    if (listOfGamers->size() == 2)
-    {
-        gamemessage(bev);
-    }
     if (gamestat == serverlogic::ON)
     {
         joinedmessage(bev);
+    }
+    if (listOfGamers->size() == 1 || listOfGamers->size() == 2)
+    {
+        gamemessage(bev);
     }
 }
 
 void serverlogic::gamemessage(struct bufferevent *bev)
 {
     std::string* data = new std::string("GAME ");
-    if (listOfGamers->size()>1)
+    if (listOfGamers->size() > 1)
     {
         gamestat = serverlogic::ON;  
         for (std::list<clientPtr>::iterator i = listOfGamers->begin();
@@ -292,13 +299,35 @@ void serverlogic::joinedmessage(struct bufferevent *bev)
         if (bev == (*i)->in_buffer)
         {
             
-            std::string* data = new std::string("JOINED");
-            evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
+            std::string* data = new std::string("JOINED ");
+            for (std::list<clientPtr>::iterator ptr = listOfGamers->begin();
+                 ptr != listOfGamers->end(); ++ptr)
+            {
+                if (client::DRAW == *((*ptr)->getStatus()))
+                {
+                    data->append((*ptr)->getName());
+                    break;
+                }
+            }
+            //Send joined message
+            evbuffer_add(((*i)->out_buffer), data->c_str(), data->size()); 
+            bufferevent_flush((*i)->in_buffer, EV_WRITE, BEV_NORMAL);
+            evbuffer_drain( (*i)->out_buffer, data->size() );
             delete data;
             //Send history
+            for (int j = 0 ; j < history.size() ; ++j)
+            {
+                sendhistory(i,j);
+            }
             break;
         }
     }
+}
+
+void serverlogic::sendhistory (std::list<clientPtr>::iterator &i, int &j)
+{
+    evbuffer_add((*i)->out_buffer, history[j].c_str(), history[j].size());
+    bufferevent_flush((*i)->in_buffer, EV_WRITE, BEV_NORMAL);
 }
 
 void serverlogic::drawmessage(struct bufferevent *bev)
@@ -310,6 +339,7 @@ void serverlogic::drawmessage(struct bufferevent *bev)
         data->append(" ");
         data->append(tokenvector[i]);
     }
+    history.push_back(*data);
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
@@ -326,15 +356,13 @@ void serverlogic::drawmessage(struct bufferevent *bev)
 void serverlogic::chatmessage(struct bufferevent *bev)
 {
 
-    std::string* data = new std::string(tokenvector[0] + " [");
+    std::string* data = new std::string(tokenvector[0] + " ");
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
         if (bev == (*i)->in_buffer)
         {
-            //Copy the data from input buffer adding a name to message
-            data->append( (*i)->getName() );
-            data->append("] ");
+            //Copy the data from input buffer 
             for (int i=1; i< tokenvector.size();++i)
             {
                 data->append(" ");
@@ -351,31 +379,39 @@ void serverlogic::chatmessage(struct bufferevent *bev)
             evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
         }
     }
+    for (int i = 0; i<tokenvector.size();++i)
+    {
+        if (pass == tokenvector[i])
+        {
+            guessedmessage(bev);
+        }
+    }
     delete data;
 }
 
 void serverlogic::itemmessage(struct bufferevent *bev)
 {
-    if (pass==tokenvector[1])
-    {
-        //If the client has successfully guessed a message
-        guessedmessage(bev);
-    }
-    else
-    {
+    //if (pass==tokenvector[1])
+    //{
+    //    //If the client has successfully guessed a message
+    //    guessedmessage(bev);
+    //}
+    //else
+    //{
         //Sending the info to the client that he hasn't guessed
         for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
         {
             if (bev == (*i)->in_buffer)
             {
-                std::string* data = new std::string("ITEM incorrect");
+                pass = tokenvector[1];
+                std::string* data = new std::string("OK");
                 evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
                 delete data;
                 break;
             }
         }
-    }
+    //}
 }
 
 void serverlogic::guessedmessage(struct bufferevent *bev)

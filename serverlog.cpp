@@ -36,7 +36,7 @@ void serverlog::loginfo(const char *info,const serverlog::CONSOLE &todo)
         currenttime = boost::posix_time::second_clock::local_time();
         std::cout << currenttime << " : " << info << std::endl;
     }
-    logtofile(info);
+    //logtofile(info);
 }
 
 void serverlog::logtofile(const char *info)

@@ -7,8 +7,9 @@
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>       /* time */
 #include <string>
-#include <boost\tokenizer.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/make_shared.hpp>
 #include "mainserv.h"
 #include "serverlog.h"
 
@@ -107,6 +108,8 @@ public:
      * Sending a message with a score table
      */
     void scoremessage(struct bufferevent *);
+
+    void sendhistory(std::list<clientPtr>::iterator &, int &);
 private:
     /**The patterns of messages got from clients*/
     std::string patterns [9];
@@ -116,6 +119,8 @@ private:
     std::vector<std::string> tokenvector;
     /**A vector of clients holding references to them*/
 	std::list<clientPtr> *listOfGamers;
+    /**History of DRAW messages*/
+    std::vector<std::string> history;
     /**A maximum number of gamers that simultaneously can play*/
     const unsigned int *GAMER_MAX_COUNT;
     /**A string holding actual password clients need to guess*/

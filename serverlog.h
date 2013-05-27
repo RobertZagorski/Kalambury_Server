@@ -12,7 +12,7 @@
 class serverlog
 {
 public:
-    static enum CONSOLE {NO_CONSOLE_OUTPUT,CONSOLE_OUTPUT};
+    enum CONSOLE {NO_CONSOLE_OUTPUT,CONSOLE_OUTPUT};
     ~serverlog(void);
     static serverlog& getlog();
     void loginfo(const char *info, const CONSOLE &todo);

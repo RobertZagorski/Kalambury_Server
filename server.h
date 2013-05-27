@@ -8,7 +8,7 @@
 //#include "serverlogic.h"
 #include "mainserv.h"
 #include "serverlog.h"
-#include <boost\make_shared.hpp>
+#include <boost/make_shared.hpp>
 
 /* Main server class. Responsible for implementation of functions needed by Libevent 
  * to properly handle connections. Implements only basic functions of a server, such as

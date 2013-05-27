@@ -25,13 +25,14 @@
 #endif
 /*client class*/
 #include "client.h"
+#include <boost/shared_ptr.hpp>
 
 /**The main base class for the project. It is responsible for delivering an interface all derived classes must implement.*/
 class mainserv 
 {
 public:
     /**The smart pointer to a client object. Used shared_ptr in this case*/
-    typedef std::shared_ptr<client> clientPtr;
+    typedef boost::shared_ptr<client> clientPtr;
     /**The default constructor. Does nothing*/
     mainserv();
     /**The virtual deconstructor.*/

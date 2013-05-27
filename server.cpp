@@ -94,7 +94,7 @@ baseserver::baseserver(mainserv *servlogic, const unsigned short &port_) :
             /* GNU/Linux code */
 		    close(socketOutput);
         #endif
-        baseserver::~baseserver();
+       //~serverlogic_();
     }
     con = serverlog::CONSOLE_OUTPUT;
     serverlog::getlog().loginfo("Server Running", *(&con));
@@ -149,7 +149,7 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
 {
 	baseserver *callback_ptr = (baseserver *) ctx;
     /*Create new client*/
-    clientPtr connectedClient = std::make_shared<client>();
+    clientPtr connectedClient = boost::make_shared<client>();
     connectedClient->out_buffer = evbuffer_new();
     serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
     serverlog::getlog().loginfo("New incoming connection", *(&con));
@@ -232,6 +232,8 @@ void baseserver::on_read(struct bufferevent *bev, void *arg)
 
 void baseserver::on_write(struct bufferevent *bev, void *arg) 
 {
+    evbuffer_drain(bufferevent_get_output(bev), 
+                   evbuffer_get_length(bufferevent_get_output(bev)));
 }
 
 void baseserver::on_error(struct bufferevent* bev, short what, void* arg)
