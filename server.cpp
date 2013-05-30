@@ -189,7 +189,8 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
     
     /*Complete socket binding*/
 	connectedClient->in_buffer = bufferevent_socket_new(
-                                 connectedClient->evbase, fd, BEV_OPT_CLOSE_ON_FREE);
+                                 connectedClient->evbase, fd, 
+                                 BEV_OPT_CLOSE_ON_FREE|BEV_OPT_DEFER_CALLBACKS );
     con = serverlog::NO_CONSOLE_OUTPUT;
     serverlog::getlog().loginfo("Associating socket with client", *(&con));
     if ((connectedClient->in_buffer) == NULL) 
@@ -222,9 +223,6 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
 
 void baseserver::on_read(struct bufferevent *bev, void *arg)
 {
-    ///
-	/// Tu nale¿y zaimplementowaæ obs³ugê co nale¿y zrobiæ po przyjœciu danych od klienta
-	///
     serverlogic_->on_read(bev,arg);
     /* Copy all the data from the input buffer to the output buffer. */
     //evbuffer_add_buffer(output, input);
@@ -234,6 +232,10 @@ void baseserver::on_write(struct bufferevent *bev, void *arg)
 {
     evbuffer_drain(bufferevent_get_output(bev), 
                    evbuffer_get_length(bufferevent_get_output(bev)));
+    /*char * data = new char[evbuffer_get_length(bufferevent_get_output(bev))]();
+    evbuffer_remove(bufferevent_get_output(bev), data, evbuffer_get_length(bufferevent_get_output(bev)));
+    std::cout << data << std::endl;
+    delete data;*/
 }
 
 void baseserver::on_error(struct bufferevent* bev, short what, void* arg)

@@ -10,6 +10,7 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/thread.hpp>
 #include "mainserv.h"
 #include "serverlog.h"
 
@@ -109,7 +110,9 @@ public:
      */
     void scoremessage(struct bufferevent *);
 
-    void sendhistory(std::list<clientPtr>::iterator &, int &);
+    void sendhistory(clientPtr , unsigned int &);
+
+    void threadgamemessage(clientPtr i);
 private:
     /**The patterns of messages got from clients*/
     std::string patterns [9];
