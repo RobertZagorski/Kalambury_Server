@@ -36,15 +36,17 @@ public:
     /**The method used to set the name of a client*/
     void setName(char *);
     /**The method used to retrieve the number of points of a client*/
-	int& getPoints();
-    /**The method used to set the number of points of a client*/
+	unsigned int getPoints();
+    /**The method used to add point to client's score*/
     void addPoints();
+    /**The method used to set the number of points of a client*/
+    void setPoints(const int&);
 private:
 	/**The status of a client. Indicates what rights the client has in the game*/
 	STATUS *clientStatus_;
     /**The name of a client*/
     char *name_;
     /**Number of points of a client*/
-    int points_;
+    unsigned int points_;
 };
 #endif //CLIENT_H

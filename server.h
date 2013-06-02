@@ -18,6 +18,7 @@
 class baseserver : public mainserv
 {
 public:
+ 
 	//
 	//Default ,private Constructor. It starts the server, opens socket.
 	//

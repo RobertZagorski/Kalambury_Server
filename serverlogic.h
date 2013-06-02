@@ -10,10 +10,12 @@
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/thread.hpp>
+#include <boost/foreach.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
+#include <boost/lexical_cast.hpp>
 #include "mainserv.h"
 #include "serverlog.h"
-
 
 
 /**The class implementing the logic of a server. It maintains the list of connected clients, multicasting the messages*/
@@ -21,11 +23,17 @@ class serverlogic : public mainserv
 {
 
 public:
-    enum MESSAGE {LOGGING,DRAWING,CHAT,BACK};
+    /**
+      * The status of a game
+      */
     enum GAMESTATUS {ON,OFF};
-	serverlogic();
+	
+    serverlogic();
 	~serverlogic();
 	
+    /**
+      * Method inherited from base class - mainserv. 
+      */
     virtual void on_accept(struct evconnlistener *listener,evutil_socket_t fd, struct sockaddr *address, int socklen, void *ctx);
     
     virtual void on_read(struct bufferevent *bev, void *arg);
@@ -55,14 +63,6 @@ public:
      * count of gamers hasn't been exceeded. In that case it generates error sent to the client
      */
     bool addGamer(clientPtr clnt);
-
-    /** 
-     * Checks the type of a message looking at its beginning and returns 
-     * one of the four known status types described in enum MESSAGE
-     */
-    MESSAGE checkForMessageType(char *);
-    
-    
     
     /**
      * Setting a player name when a client has sent an appropriate message
@@ -109,10 +109,15 @@ public:
      * Sending a message with a score table
      */
     void scoremessage(struct bufferevent *);
+    
+    /**
+      * Function invoked when client reguests for sending the history of a game
+      */
+    void historymessage (struct bufferevent *);
 
-    void sendhistory(clientPtr , unsigned int &);
 
-    void threadgamemessage(clientPtr i);
+    void clearmessage(struct bufferevent *);
+
 private:
     /**The patterns of messages got from clients*/
     std::string patterns [9];
@@ -130,5 +135,7 @@ private:
     std::string pass;
     /**A enum indicating whether the game has started or not*/
     GAMESTATUS gamestat;
+    
+    boost::function<void (serverlogic*, struct bufferevent *)> invokefunction;
 };
 #endif //SERVERLOGIC_H

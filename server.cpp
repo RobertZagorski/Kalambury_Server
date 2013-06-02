@@ -232,10 +232,6 @@ void baseserver::on_write(struct bufferevent *bev, void *arg)
 {
     evbuffer_drain(bufferevent_get_output(bev), 
                    evbuffer_get_length(bufferevent_get_output(bev)));
-    /*char * data = new char[evbuffer_get_length(bufferevent_get_output(bev))]();
-    evbuffer_remove(bufferevent_get_output(bev), data, evbuffer_get_length(bufferevent_get_output(bev)));
-    std::cout << data << std::endl;
-    delete data;*/
 }
 
 void baseserver::on_error(struct bufferevent* bev, short what, void* arg)

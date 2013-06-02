@@ -5,6 +5,7 @@ client::client()
 {
     this->points_ = 0;
     this->setStatus(new client::STATUS(client::GUESS));
+    this->name_ = new char[1]();
 }
 
 client::client(const client &clnt)
@@ -17,7 +18,10 @@ client::client(const client &clnt)
     //this->name_ = new char (*clnt.name_);
 }
 
-client::~client() {}
+client::~client() 
+{
+    delete name_;
+}
 
 
 client::STATUS* client::getStatus()
@@ -40,7 +44,7 @@ void client::setName(char* name)
 	this->name_ = name;
 }
 
-int& client::getPoints()
+unsigned int client::getPoints()
 {
 	return points_;
 }
@@ -48,4 +52,9 @@ int& client::getPoints()
 void client::addPoints()
 {
 	this->points_+=1;
+}
+
+void client::setPoints(const int &points)
+{
+    this->points_ = points;
 }
