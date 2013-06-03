@@ -20,6 +20,8 @@ serverlogic::serverlogic() : mainserv(), GAMER_MAX_COUNT(new unsigned int(20))
     FunctionPointers[5] = &serverlogic::chatmessage;
     FunctionPointers[6] = &serverlogic::scoremessage;
     FunctionPointers[7] = &serverlogic::clearmessage;
+    drawobserver *obs = new historyobserver();
+    registerobserver(obs);
 }
 
 serverlogic::~serverlogic()
@@ -116,7 +118,7 @@ void serverlogic::on_read(struct bufferevent *bev, void *arg)
     for (int i = 0; i<(sizeof(patterns)/sizeof(*patterns));++i){
         if (tokenvector[0].compare(patterns[i]) == 0)
         {
-            //(this->*FunctionPointers[i])(bev);
+            //Using boost::function to invoke appropriate method to handle message
             invokefunction = FunctionPointers[i];
             invokefunction(this, bev);
             break;
@@ -162,37 +164,44 @@ void serverlogic::closeAndFreeClient(clientPtr clnt) {
 
 void serverlogic::on_error(struct bufferevent* bev, short what, void* arg)
 {
+    if (listOfGamers->size() == 0)
+    {
+        return;
+    }
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
         if (bev == (*i)->in_buffer)
         {
-            std::string* data = new std::string("Disconnected: ");
+            std::string* data = new std::string("DISCONNECTED: ");
             data->append((*i)->getName());
             evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
-            serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
+            serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
             serverlog::getlog().loginfo(data->c_str(), *(&con));
+            //If the drawing player has 
             if (client::DRAW == *((*i)->getStatus()))
             {
+                listOfGamers->remove((*i));
                 srand ( static_cast<unsigned int>(time(0)) );
                 int element = rand()%listOfGamers->size();
                 std::list<clientPtr>::iterator pointer = listOfGamers->begin();
                 for(int j = 0 ;j < element && pointer != listOfGamers->end() ; j++ , pointer++ ){};
                 (*pointer)->setStatus(new client::STATUS(client::DRAW));
+                gamemessage((*pointer)->in_buffer);
             }
             delete data;
-            listOfGamers->erase(i);
             con = serverlog::NO_CONSOLE_OUTPUT;
             serverlog::getlog().loginfo("Erased client's data from database", *(&con));
             break;
         }
 
     }
-    if (listOfGamers->size()<=1)
+    if (listOfGamers->size() == 1)
     {
-        waitingmessage(bev);
+        listOfGamers->front()->setPoints(0);
         gamestat = serverlogic::OFF;
-        history.clear();
+        detachobserver();
+        waitingmessage(bev);
     }
 }
 
@@ -208,7 +217,10 @@ void serverlogic::loginmessage(struct bufferevent *bev)
             {
                 std::string* data = new std::string("LOGIN exists");
                 evbuffer_add(bufferevent_get_output(bev), data->c_str(), data->size());
+                serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+                serverlog::getlog().loginfo(data->c_str(), *(&con));
                 delete data;
+                return;
             }
         }
     }
@@ -258,12 +270,17 @@ void serverlogic::gamemessage(struct bufferevent *bev)
                 //Sending game start message
                 evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
         }
+        std::string *data2 = new std::string("Sent: ");
+        data2->append(*data);
+        serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+        serverlog::getlog().loginfo(data2->c_str(), *(&con));
+        delete data2;
     }
     else
     {
         //The gamer is alone in the game, must wait for others
         this->waitingmessage(bev);
-    }             
+    }
     delete data;
 }
 
@@ -273,9 +290,14 @@ void serverlogic::waitingmessage(struct bufferevent *bev)
     std::string* data = new std::string("WAITING");
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
             i != listOfGamers->end(); ++i)
-        {
-                evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
-        }
+    {
+        evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
+    }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(*data);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
     delete data;
 }
 
@@ -291,6 +313,7 @@ void serverlogic::joinedmessage(struct bufferevent *bev)
             for (std::list<clientPtr>::iterator ptr = listOfGamers->begin();
                  ptr != listOfGamers->end(); ++ptr)
             {
+                //Send info who is drawing now
                 if (client::DRAW == *((*ptr)->getStatus()))
                 {
                     data->append((*ptr)->getName());
@@ -299,6 +322,11 @@ void serverlogic::joinedmessage(struct bufferevent *bev)
             }
             //Send joined message
             evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
+            std::string *data2 = new std::string("Sent: ");
+            data2->append(*data);
+            serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+            serverlog::getlog().loginfo(data2->c_str(), *(&con));
+            delete data2;
             delete data;
         }
     }
@@ -311,12 +339,18 @@ void serverlogic::historymessage(struct bufferevent *bev)
     {
         if (bev == (*i)->in_buffer)
         {
-            BOOST_FOREACH( std::string text, history )
+            BOOST_FOREACH( drawobserver *obs, observers )
             {
-                evbuffer_add((*i)->out_buffer, text.c_str(), text.size());
+                std::string * str = new std::string(obs->historymerging());
+                evbuffer_add((*i)->out_buffer, str->c_str(), str->size());
+                delete str;
             }
         }
     }
+    std::string *data2 = new std::string("Sent history");
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
 }
 
 void serverlogic::drawmessage(struct bufferevent *bev)
@@ -329,7 +363,7 @@ void serverlogic::drawmessage(struct bufferevent *bev)
         data->append(tokenvector[i]);
     }
     //Saving to history
-    history.push_back(*data);
+    notifyobserver(*data);
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
@@ -340,6 +374,11 @@ void serverlogic::drawmessage(struct bufferevent *bev)
             
         }
     }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(*data);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
     delete data;
 }
 
@@ -348,22 +387,25 @@ void serverlogic::chatmessage(struct bufferevent *bev)
 
     std::string* data = new std::string(tokenvector[0] + " ");
     std::string* password = new std::string("");
-    //Copy the data from input buffer
     data->append(" ");
     data->append(tokenvector[1]);
     for (unsigned int i=2; i< tokenvector.size();++i)
     {
+        //Append the chat message to the output message
         data->append(" ");
         data->append(tokenvector[i]);
         password->append(" ");
         password->append(tokenvector[i]);
     }
+    //Check if the password is in the chat message
     *password = password->substr(1,password->size()-1);
+    boost::to_lower(*password);
     if ( !password->compare(pass.c_str()) )
     {
         guessedmessage(bev);
         return;
     }
+    //Multicast chat message
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
@@ -372,6 +414,11 @@ void serverlogic::chatmessage(struct bufferevent *bev)
             evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
         }
     }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(*data);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
     delete data;
     delete password;
 }
@@ -385,12 +432,20 @@ void serverlogic::itemmessage(struct bufferevent *bev)
             {
                 for (unsigned int j=1; j < tokenvector.size();++j)
                 {
+                    //Setting the password for this game
                     pass.append(" ");
                     pass.append(tokenvector[j]);
                 }
                 pass = pass.substr(1,pass.size()-1);
+                boost::to_lower(pass);
+                //Sending acknowledge to the player
                 std::string* data = new std::string("OK");
                 evbuffer_add(((*i)->out_buffer), data->c_str(), data->size());
+                std::string *data2 = new std::string("Sent new password: ");
+                data2->append(pass);
+                serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+                serverlog::getlog().loginfo(data2->c_str(), *(&con));
+                delete data2;
                 delete data;
                 break;
             }
@@ -400,6 +455,7 @@ void serverlogic::itemmessage(struct bufferevent *bev)
 void serverlogic::guessedmessage(struct bufferevent *bev)
 {
     std::string data;
+    bool nopoint = false;
     //Change of the status of client that has previously drawn
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
         i != listOfGamers->end(); ++i)
@@ -408,6 +464,10 @@ void serverlogic::guessedmessage(struct bufferevent *bev)
         {
             delete (*i)->getStatus();
             (*i)->setStatus(new client::STATUS(client::GUESS));
+            if (bev == (*i)->in_buffer)
+            {
+                nopoint = true;
+            }
             break;
         }
     }
@@ -423,7 +483,10 @@ void serverlogic::guessedmessage(struct bufferevent *bev)
             data.append(pass);
             delete (*i)->getStatus();
             (*i)->setStatus(new client::STATUS(client::DRAW));
-            (*i)->addPoints();
+            if (nopoint == false)
+            {
+                (*i)->addPoints();
+            }
             //Sending the info who has guessed the answer to every client
             for (std::list<clientPtr>::iterator it = listOfGamers->begin();
                 it != listOfGamers->end(); ++it)
@@ -433,15 +496,24 @@ void serverlogic::guessedmessage(struct bufferevent *bev)
             break;
         }
     }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(data);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
     pass.clear();
-    history.clear();
+    //history.clear();
+    clearobserversmemory();
 }
 
 void serverlogic::scoremessage(struct bufferevent *bev)
 {
+    //Create a multimap (holds all records with the same key)
     std::multimap<unsigned int,std::string> *mmap =  new std::multimap<unsigned int,std::string>();
+    //A flag checking if a player is in the best three
     bool inthree = false;
     int position = 0;
+    //A group of variables holding a state of askin player
     int playerposition = position;
     unsigned int points;
     std::string name;
@@ -458,43 +530,57 @@ void serverlogic::scoremessage(struct bufferevent *bev)
         }
     }
     int counter = 0;
-    //Counting how many players are ahead
-    /*for (std::multimap<unsigned int,std::string>::reverse_iterator i = mmap->rbegin();
-         i != mmap->find(points); ++i)
-    {
-        ++counter;
-    }*/
+    //A message that will be sent to the player
     std::string *message = new std::string(tokenvector[0] + " ");
     std::multimap<unsigned int,std::string>::reverse_iterator i = mmap->rbegin();
+    //The best player of the game - his position, name and points
     //message->append(boost::lexical_cast<std::string>(1));
     //message->append(" ");
     message->append(i->second);
     message->append(" ");
     message->append(boost::lexical_cast<std::string>(i->first));
     message->append(" ");
-    points == i->first ? inthree = true : inthree = inthree ;
-    ++i;
-    //message->append(boost::lexical_cast<std::string>(2));
-    //message->append(" ");
-    message->append(i->second);
-    message->append(" ");
-    message->append(boost::lexical_cast<std::string>(i->first));
-    message->append(" ");
-    (points == i->first) ? inthree = true : inthree = inthree ;
-    if (mmap->size() > 2)
+    if (points == i->first)
+    {
+        inthree = true;
+    }
+    if (mmap->size() > 1)
     {
         ++i;
-        //message->append(boost::lexical_cast<std::string>(3));
+        //The second best player of the game - his position, name and points
+        //message->append(boost::lexical_cast<std::string>(2));
         //message->append(" ");
         message->append(i->second);
         message->append(" ");
         message->append(boost::lexical_cast<std::string>(i->first));
         message->append(" ");
-        (points == i->first) ? inthree = true : inthree = inthree ;
+        if (points == i->first)
+        {
+            inthree = true;
+        }
     }
-    ///Sending score to the player
-    if (!inthree)
+    if (mmap->size() > 2)
     {
+        //The third best player of the game - his position, name and points
+        ++i;
+        if (points == i->first && inthree == false)
+        {
+            message->append(name);
+            inthree = true;
+        }
+        else
+        {   
+            //message->append(boost::lexical_cast<std::string>(3));
+            //message->append(" ");
+            message->append(i->second);
+        }
+        message->append(" ");
+        message->append(boost::lexical_cast<std::string>(i->first));
+        message->append(" ");
+    }
+    if (inthree == false)
+    {
+        //if the player is not in the best three, add also info with his position
         //message->append(boost::lexical_cast<std::string>(playerposition));
         //message->append(" ");
         message->append(name);
@@ -502,6 +588,7 @@ void serverlogic::scoremessage(struct bufferevent *bev)
         message->append(boost::lexical_cast<std::string>(points));
         message->append(" ");
     }
+    //Sending score to the player
     for (std::list<clientPtr>::iterator i = listOfGamers->begin();
          i != listOfGamers->end(); ++i)
     {
@@ -511,6 +598,11 @@ void serverlogic::scoremessage(struct bufferevent *bev)
             break;
         }
     }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(*message);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
     delete message;
 }
 
@@ -523,5 +615,33 @@ void serverlogic::clearmessage(struct bufferevent *bev)
         {
             evbuffer_add(((*i)->out_buffer), tokenvector[0].c_str(), tokenvector[0].size());
         }
+    }
+    std::string *data2 = new std::string("Sent: ");
+    data2->append(tokenvector[0]);
+    serverlog::CONSOLE con = serverlog::CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo(data2->c_str(), *(&con));
+    delete data2;
+}
+
+void serverlogic::registerobserver(drawobserver *obs)
+{
+    observers.push_back(obs);
+}
+
+void serverlogic::detachobserver()
+{
+    observers.clear();
+}
+
+void serverlogic::clearobserversmemory()
+{
+    observers.front()->clearobserversmemory();
+}
+
+void serverlogic::notifyobserver(const std::string &data)
+{
+    BOOST_FOREACH( drawobserver *obs, observers )
+    {
+        obs->update(data);
     }
 }

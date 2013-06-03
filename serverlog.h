@@ -1,6 +1,6 @@
 #ifndef SERVERLOG_H
 #define SERVERLOG_H
-
+///*A class responsible for logging*
 #include <iostream>
 #include <fstream>
 #include <boost/date_time/gregorian/gregorian.hpp>

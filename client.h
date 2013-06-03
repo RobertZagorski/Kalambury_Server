@@ -1,6 +1,6 @@
 #ifndef CLIENT_H
 #define CLIENT_H
-#include <memory>
+///*The class of a client.*
 
 /**The class of a client. It mainly keeps information about a client
   * like a socket descriptor, name of a client, points he has  
@@ -12,13 +12,10 @@ public:
     enum STATUS {DRAW,GUESS,OBSERVE};
 	/**The client's socket. */
     int c_socket;
-
 	/**The event_base for this client. */
     struct event_base *evbase;
-
     /**The bufferedevent for this client. */
     struct bufferevent *in_buffer;
-
     /**The output buffer for this client. */
     struct evbuffer *out_buffer;
 	/**The default constructor*/

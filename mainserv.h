@@ -1,14 +1,12 @@
 #ifndef MAINSERV_H
 #define MAINSERV_H
-#include <iostream>
-#include <cstring>
+///*A baseclass of a server*
 /* Libevent*/
 #include <event2/event.h>
 #include <event2/bufferevent.h>
 #include <event2/buffer.h>
 #include <event2/listener.h>
 #include <event2/util.h>
-#include <signal.h>
 
 #ifdef __unix__
 #include <sys/types.h>

@@ -224,8 +224,6 @@ void baseserver::on_accept(struct evconnlistener *listener,evutil_socket_t fd, s
 void baseserver::on_read(struct bufferevent *bev, void *arg)
 {
     serverlogic_->on_read(bev,arg);
-    /* Copy all the data from the input buffer to the output buffer. */
-    //evbuffer_add_buffer(output, input);
 }
 
 void baseserver::on_write(struct bufferevent *bev, void *arg) 
@@ -236,8 +234,8 @@ void baseserver::on_write(struct bufferevent *bev, void *arg)
 
 void baseserver::on_error(struct bufferevent* bev, short what, void* arg)
 {
-    //serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
-    //serverlog::getlog().loginfo("Error on the underlying socket", *(&con));
+    serverlog::CONSOLE con = serverlog::NO_CONSOLE_OUTPUT;
+    serverlog::getlog().loginfo("Error on the underlying socket", *(&con));
     evutil_socket_t socketptr = bufferevent_getfd(bev);
     try {
     serverlogic_->on_error(bev,what, (void *)socketptr);

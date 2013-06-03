@@ -15,7 +15,7 @@ client::client(const client &clnt)
     this->evbase = clnt.evbase;
     this->in_buffer = clnt.in_buffer;
     this->out_buffer = clnt.out_buffer;
-    //this->name_ = new char (*clnt.name_);
+    this->name_ = new char (*clnt.name_);
 }
 
 client::~client() 

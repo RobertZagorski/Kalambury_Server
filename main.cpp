@@ -4,6 +4,7 @@
 #include "serverlogic.h"
 #include "serverlog.h"
 
+/**The main function of server program that start it*/
 int main(int argc, char *argv[]){
 	const unsigned short port = 12034;
     serverlogic *servlogic_ = new serverlogic();

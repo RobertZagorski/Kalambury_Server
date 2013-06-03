@@ -1,16 +1,15 @@
 #ifndef SERVER_H
 #define SERVER_H
+///*Main server class.*
 #include <iostream>
 #include <string>
 #include <stdio.h>
 
-///*The logic of a server*/
-//#include "serverlogic.h"
 #include "mainserv.h"
 #include "serverlog.h"
 #include <boost/make_shared.hpp>
 
-/* Main server class. Responsible for implementation of functions needed by Libevent 
+/** Main server class. Responsible for implementation of functions needed by Libevent 
  * to properly handle connections. Implements only basic functions of a server, such as
  * sending and writing data and registering new clients but do not archive the data
  * about them. This is the responsibility of a class [serverlogic]: @ref serverlogic "serverlogic"
