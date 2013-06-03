@@ -1,6 +1,6 @@
 #ifndef HISTORYOBSERVER_H
 #define HISTORYOBSERVER_H
-///*An implementation of observer responsible for holding history*
+///An implementation of observer responsible for holding history
 
 #include <string>
 #include <vector>
@@ -16,9 +16,11 @@ public:
     historyobserver();
     /**Default deconstructor*/
     ~historyobserver();
-    /**Updating a collection of history - DRAW messages*/
-    void update(const std::string &);
-    /**Pass a reference to merged history collection*/
+    /**Updating a collection of history - DRAW messages
+      * \param text_ the text that history is to be updated with*/
+    void update(const std::string &text_);
+    /**Pass a reference to merged history collection
+      * \return the data that is to be passed to observable*/
     std::string historymerging();
     /**Reset a history*/
     void clearobserversmemory();
